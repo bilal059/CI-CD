@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Assignment 2 - Matrix Testing & Conditional Build
 
 on:
   push:
@@ -10,11 +10,13 @@ on:
     branches:
       - '**'
 
+# Cancel older runs if new code is pushed on same branch
 concurrency:
   group: ${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
+  # Test Job
   test:
     name: Test on Node ${{ matrix.node-version }}
     runs-on: ubuntu-latest
@@ -27,7 +29,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
@@ -46,17 +48,19 @@ jobs:
           name: test-results-${{ matrix.node-version }}
           path: test-results/${{ matrix.node-version }}
 
+  # Build Job
   build:
-    name: Build
+    name: Build after tests
     needs: test
     runs-on: ubuntu-latest
+    # Only run build on main branch or version tags
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Setup Node
+      - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 18
@@ -72,7 +76,7 @@ jobs:
       - name: Build project
         run: npm run build
 
-      - name: Upload build output
+      - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
           name: dist
